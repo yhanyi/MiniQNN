@@ -1,21 +1,15 @@
-/// Q Neural Network
+/// Mini Q Neural Network
 
 sig:{1%(1+exp neg x)};
 sigd:{x*(1-x)};
 shape:{(count x;count last x)}
-
-init:{
-  if[1=x;:"Number of input neurons must be greater than 1."];
-  flip flip[r]-avg r:{[x;y]x?1.0}[y]each til x
-  };
-
+init:{flip flip[r]-avg r:{[x;y]x?1.0}[y]each til x};
 fwd:{[x;y;lr;d]
   z:1.0,/:sig[x mmu d`w];
   o:sig[z mmu d`v];
   do:y-o;
   dh:1_/:$[do;flip d`v]*sigd z;
-  `o`v`w!(o;d[`v]+lr*flip[z] mmu do;
-            d[`w]+lr*flip[x] mmu dh)
+  `o`v`w!(o;d[`v]+lr*flip[z] mmu do;d[`w]+lr*flip[x] mmu dh)
   };
 
 qns:(`XOR`AND`OR`NAND)!(
