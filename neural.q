@@ -1,116 +1,39 @@
 /// Q Neural Network
 
-// Activations
-sigmoid:{1%(1+exp neg x)};
-sigmoid_derivative:{x*(1-x)};
+sig:{1%(1+exp neg x)};
+sigd:{x*(1-x)};
+shape:{(count x;count last x)}
 
-// Initialise
-init:{[structure]
-  if[2>count structure; '"Neural network must have at least input and output layers"];
-  
-  weights:();
-  biases:();
-    
-  i:0;
-  while[i<(count structure)-1;
-    // Random weights between -1 and 1
-    w:(structure[i+1];structure[i])#(2*structure[i+1]*structure[i])?1.0;
-    weights,:enlist w;
-        
-    // Random biases between -1 and 1
-    b:(structure[i+1])#(structure[i+1])?1.0;
-    biases,:enlist b;
-        
-    i+:1;
-    ];
-    
-  // Return a dictionary with weights and biases
-  `weights`biases!(weights;biases)
+init:{
+  if[1=x;:"Number of input neurons must be greater than 1."];
+  flip flip[r]-avg r:{[x;y]x?1.0}[y]each til x
   };
 
-// Forward Propagation
-fwdprop:{[nn; x]
-  // If x is a single sample, wrap in a list
-  multiple:0h=type x;
-  if[not multiple; x:enlist x];
-  
-  results:();
-  j:0;
-  
-  // Process each sample
-  while[j<count x;
-    sample:x[j];
-    activations:enlist sample;
-    
-    // Process each layer
-    i:0;
-    while[i<count nn[`weights];
-      // Get input for this layer
-      input:last activations;
-      
-      // Get weights and biases for this layer
-      w:nn[`weights][i];
-      b:nn[`biases][i];
-      
-      // Calculate weighted sum for this layer
-      z:();
-      n:0;
-      while[n<count w;
-        // Calculate weighted sum for this neuron
-        weighted_sum:sum input * w[n];
-        
-        // Add bias
-        weighted_sum:weighted_sum + b[n];
-        
-        // Add to layer output
-        z,:enlist weighted_sum;
-        n+:1;
-        ];
-      
-      // Apply activation function
-      a:sigmoid z;
-      
-      // Add to activations
-      activations,:enlist a;
-      
-      // Move to next layer
-      i+:1;
-      ];
-    
-    // Store final result for this sample
-    results,:enlist last activations;
-    
-    // Move to next sample
-    j+:1;
-    ];
-  
-  // If input x was a single sample, return a single result, else return list of results
-  $[multiple; results; first results]
+fwd:{[x;y;lr;d]
+  z:1.0,/:sig[x mmu d`w];
+  o:sig[z mmu d`v];
+  do:y-o;
+  dh:1_/:$[do;flip d`v]*sigd z;
+  `o`v`w!(o;d[`v]+lr*flip[z] mmu do;
+            d[`w]+lr*flip[x] mmu dh)
   };
 
-// Back Propagation
-backprop:{[nn; activations; y]
-  output:first last activations;
-  error:output - y;
-  output_delta:error * sigmoid_derivative output;
-  `activations`error`output_delta!(activations;error;output_delta)
-  };
+qns:(`XOR`AND`OR`NAND)!(
+  (0 1 1 0f);   // XOR
+  (0 0 0 1f);   // AND
+  (0 1 1 1f);   // OR
+  (1 1 1 0f)    // NAND
+  );
 
+x:((0 0f);(0 1f);(1 0f);(1 1f))
+x:x,'1.0;
 
-/// Test with XOR
-example_x:(0 0; 0 1; 1 0; 1 1);
-example_y:(0; 1; 1; 0);
-
-nn:init[2 3 1];
-show nn;
-
-e:0;
-while[e<1;
-  activations:fwdprop[nn;example_x];
-  show activations;
-  predictions:last activations;
-  gradients:backprop[nn;activations;example_y];
-  show gradients;
-  e+:1;
-  ];
-
+{[t;y]
+  -1 "\n= Test ",string[t]," =";
+  w:init . (3;count first x);
+  v:init . (1;4);
+  res:(fwd[x;y;0.1]/)[10000;`o`w`v!(0,();w;v)];
+  -1 type string[y];
+  -1 string[y];
+  -1 string[res`o];
+  }[;]each (key qns;value qns);
