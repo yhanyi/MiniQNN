@@ -88,6 +88,14 @@ fwdprop:{[nn; x]
   $[multiple; results; first results]
   };
 
+// Back Propagation
+backprop:{[nn; activations; y]
+  output:first last activations;
+  error:output - y;
+  output_delta:error * sigmoid_derivative output;
+  `activations`error`output_delta!(activations;error;output_delta)
+  };
+
 
 /// Test with XOR
 example_x:(0 0; 0 1; 1 0; 1 1);
@@ -96,5 +104,13 @@ example_y:(0; 1; 1; 0);
 nn:init[2 3 1];
 show nn;
 
-activations:fwdprop[nn; example_x];
-show activations;
+e:0;
+while[e<1;
+  activations:fwdprop[nn;example_x];
+  show activations;
+  predictions:last activations;
+  gradients:backprop[nn;activations;example_y];
+  show gradients;
+  e+:1;
+  ];
+
